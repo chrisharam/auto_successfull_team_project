@@ -11,8 +11,3 @@ def _to_qcolor(c: ColorLike) -> QColor:
     """문자열/튜플/QColor를 QColor로 통일"""
     if isinstance(c, QColor):
         return QColor(c)
-    if i
-
-
-if __name__ == "__main__":
-    main()
