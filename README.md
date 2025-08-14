@@ -23,3 +23,17 @@ git commit -m "message"
 git push origin main
 혹은
 git push origin 새로만든 브랜치 이름
+
+
+
+
++현재 브랜치 확인 
+git branch
+* 표시가 있는 곳이 현재 브랜치
+
++브랜치 옮기기
+git checkout 브랜치이름
+
+
++++++ 로컬에서 팀원들 브랜치 보는 법 +++++
+먼저 git fetch origin → git branch -r로 확인 → 필요하면 checkout -b로 로컬 브랜치 생성
