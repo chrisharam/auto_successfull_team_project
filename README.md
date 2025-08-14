@@ -22,7 +22,7 @@ git commit -m "message"
 
 git push origin main
 혹은
-git push origin 새로만든 브랜치 이름
+***git push -u origin 새로만든 브랜치 이름***
 
 
 
