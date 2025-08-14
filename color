@@ -11,3 +11,135 @@ def _to_qcolor(c: ColorLike) -> QColor:
     """문자열/튜플/QColor를 QColor로 통일"""
     if isinstance(c, QColor):
         return QColor(c)
+    if isinstance(c, tuple) and len(c) == 3:
+        r, g, b = c
+        return QColor(int(r), int(g), int(b))
+    # 문자열: "red", "#112233" 등
+    return QColor(str(c))
+
+
+def _rect_from_points(p1: QPoint, p2: QPoint) -> QRect:
+    return QRect(min(p1.x(), p2.x()), min(p1.y(), p2.y()),
+                 abs(p1.x() - p2.x()), abs(p1.y() - p2.y()))
+
+
+class PaintCore:
+    """
+    UI 없이 QImage 위에만 그리는 순수 기능 클래스.
+    - 도구 문자열: "brush" | "line" | "rect" | "ellipse"
+    - 채우기 색/OnOff, 윤곽선 색/굵기 설정
+    - 지우기/저장 지원
+    """
+
+    def __init__(self, width: int = 800, height: int = 500, bg: ColorLike = Qt.white) -> None:
+        self.image = QImage(width, height, QImage.Format_RGB32)
+        self.image.fill(_to_qcolor(bg))
+
+        # 상태
+        self.tool = "brush"
+        self.pen_width = 5
+        self.stroke_color = QColor(Qt.black)
+        self.fill_enabled = False
+        self.fill_color = QColor(Qt.white)
+
+    # -------- 설정 API --------
+    def set_tool(self, tool: str) -> None:
+        assert tool in ("brush", "line", "rect", "ellipse")
+        self.tool = tool
+
+    def set_pen_width(self, w: int) -> None:
+        self.pen_width = max(1, int(w))
+
+    def set_stroke_color(self, c: ColorLike) -> None:
+        self.stroke_color = _to_qcolor(c)
+
+    def set_fill_color(self, c: ColorLike) -> None:
+        self.fill_color = _to_qcolor(c)
+
+    def set_fill_enabled(self, enabled: bool) -> None:
+        self.fill_enabled = bool(enabled)
+
+    def clear(self, bg: ColorLike = Qt.white) -> None:
+        """배경색으로 전체 지우기"""
+        self.image.fill(_to_qcolor(bg))
+
+    def save_image(self, path: str) -> bool:
+        return self.image.save(path)
+
+    # -------- 그리기 API (좌표 기반) --------
+    def draw_brush_segment(self, p1: Tuple[int, int], p2: Tuple[int, int]) -> None:
+        """브러시 선분(연속 호출로 자유곡선)"""
+        self._draw_line_on_image(QPoint(*p1), QPoint(*p2))
+
+    def draw_line(self, p1: Tuple[int, int], p2: Tuple[int, int]) -> None:
+        self._draw_line_shape(QPoint(*p1), QPoint(*p2))
+
+    def draw_rect(self, p1: Tuple[int, int], p2: Tuple[int, int]) -> None:
+        self._draw_rect_shape(QPoint(*p1), QPoint(*p2))
+
+    def draw_ellipse(self, p1: Tuple[int, int], p2: Tuple[int, int]) -> None:
+        self._draw_ellipse_shape(QPoint(*p1), QPoint(*p2))
+
+    # -------- 내부 구현 --------
+    def _pen(self) -> QPen:
+        return QPen(self.stroke_color, self.pen_width, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+
+    def _brush(self) -> QBrush:
+        return QBrush(self.fill_color) if self.fill_enabled else Qt.NoBrush
+
+    def _draw_line_on_image(self, p1: QPoint, p2: QPoint) -> None:
+        painter = QPainter(self.image)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        painter.setPen(self._pen())
+        painter.drawLine(p1, p2)
+        painter.end()
+
+    def _draw_line_shape(self, p1: QPoint, p2: QPoint) -> None:
+        painter = QPainter(self.image)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        painter.setPen(self._pen())
+        painter.setBrush(Qt.NoBrush)
+        painter.drawLine(p1, p2)
+        painter.end()
+
+    def _draw_rect_shape(self, p1: QPoint, p2: QPoint) -> None:
+        painter = QPainter(self.image)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        painter.setPen(self._pen())
+        painter.setBrush(self._brush())
+        painter.drawRect(_rect_from_points(p1, p2))
+        painter.end()
+
+    def _draw_ellipse_shape(self, p1: QPoint, p2: QPoint) -> None:
+        painter = QPainter(self.image)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        painter.setPen(self._pen())
+        painter.setBrush(self._brush())
+        painter.drawEllipse(_rect_from_points(p1, p2))
+        painter.end()
+
+
+# -------- 샘플 사용(테스트) --------
+if __name__ == "__main__":
+    core = PaintCore(600, 400, bg="white")
+
+    # 윤곽선/채우기 설정
+    core.set_stroke_color("#2222ff")
+    core.set_pen_width(6)
+    core.set_fill_color((255, 230, 120))
+    core.set_fill_enabled(True)
+
+    # 사각형/원 그리기
+    core.draw_rect((50, 50), (250, 200))
+    core.set_stroke_color("crimson")
+    core.draw_ellipse((300, 80), (520, 260))
+
+    # 브러시로 낙서
+    core.set_fill_enabled(False)  # 브러시는 채우기 없음
+    core.set_stroke_color("black")
+    pts = [(60, 300), (120, 320), (180, 310), (240, 330), (300, 320)]
+    for a, b in zip(pts, pts[1:]):
+        core.draw_brush_segment(a, b)
+
+    core.save_image("example.png")
+    print("Saved example.png")
