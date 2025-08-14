@@ -1,5 +1,6 @@
+# paint_canvas.py
 from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout
-from PyQt5.QtGui import QPainter, QPen, QColor, QPixmap
+from PyQt5.QtGui import QPainter, QPen, QPixmap, QColor
 from PyQt5.QtCore import Qt, QPoint
 
 class PaintCanvas(QWidget):
