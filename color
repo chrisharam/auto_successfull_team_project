@@ -1,0 +1,18 @@
+# paint_core.py
+from typing import Tuple, Union
+from PyQt5.QtCore import Qt, QPoint, QRect
+from PyQt5.QtGui import QImage, QPainter, QPen, QBrush, QColor
+
+
+ColorLike = Union[str, Tuple[int, int, int], QColor]
+
+
+def _to_qcolor(c: ColorLike) -> QColor:
+    """문자열/튜플/QColor를 QColor로 통일"""
+    if isinstance(c, QColor):
+        return QColor(c)
+    if i
+
+
+if __name__ == "__main__":
+    main()
